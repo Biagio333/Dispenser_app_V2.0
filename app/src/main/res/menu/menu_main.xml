@@ -3,8 +3,13 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.croen.dispenser_app_v20.MainActivity">
     <item
-        android:id="@+id/action_settings"
-        android:orderInCategory="100"
-        android:title="@string/action_settings"
+        android:id="@+id/action_download"
+        android:orderInCategory="10"
+        android:title="Download new products"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_upload"
+        android:orderInCategory="20"
+        android:title="Upload to dispenser"
         app:showAsAction="never" />
 </menu>
