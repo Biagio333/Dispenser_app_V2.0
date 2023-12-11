@@ -33,9 +33,10 @@ public class sincronizzaLibreriaServerInternet {
             sftpChannel = (ChannelSftp) channel;
 
             ricorsivaSincronizzazione(sftpChannel, cartellaRemota, cartellaLocale);
-
+            System.out.println("OK" );
         } catch (JSchException | SftpException e) {
             e.printStackTrace();
+            System.out.println("KO" );
         } finally {
             // Chiudi la connessione SFTP
             if (sftpChannel != null) {
