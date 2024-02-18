@@ -41,6 +41,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import it.sauronsoftware.ftp4j.FTPClient;
+import android.net.NetworkRequest;import android.net.wifi.WifiNetworkSpecifier;
+import android.os.PatternMatcher;import android.net.ConnectivityManager;
+import android.provider.Settings;
+import android.content.Intent;
+import android.net.Uri;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.IOException;
 
 
 public class SecondFragment extends Fragment {
@@ -60,6 +68,8 @@ public class SecondFragment extends Fragment {
     private TextView textView;
     String text_in_wiew="";
     public int MS_Timer=0;
+
+    public boolean Request_select_lan_hotspot_dispenser=false;
     //timer
     private final int interval = 1000; // 1 secondo
     private Handler handler = new Handler(Looper.getMainLooper()); // Handler associato al thread principale
@@ -67,10 +77,9 @@ public class SecondFragment extends Fragment {
         //questo gira di continuo ogni secondo metto tutta la logica x il download
         public void run() {
 
-            switch (MS_Timer){
+            switch (MS_Timer) {
                 case 0:
-
-
+                    Request_select_lan_hotspot_dispenser=false;
 
                     break;
                 case 2:
@@ -101,11 +110,11 @@ public class SecondFragment extends Fragment {
                         @Override
                         public void run() {
                             getActivity().runOnUiThread(() -> {
-                            textView = getView().findViewById(R.id.textView2);
-                            // Chiamata al metodo per scrivere il testo nella TextView
-                            textView.setText(byteArrayOutputStream.toString());
-                            if (future.isDone()) {
-                                // Il task è completato, esegui azioni post-completamento nel thread UI principale
+                                textView = getView().findViewById(R.id.textView2);
+                                // Chiamata al metodo per scrivere il testo nella TextView
+                                textView.setText(byteArrayOutputStream.toString());
+                                if (future.isDone()) {
+                                    // Il task è completato, esegui azioni post-completamento nel thread UI principale
                                     Toast.makeText(getActivity(), "File sincronizzati dal server.", Toast.LENGTH_SHORT).show();
                                     getView().findViewById(R.id.button_download).setEnabled(true);
                                     getView().findViewById(R.id.button_second).setEnabled(true);
@@ -118,33 +127,111 @@ public class SecondFragment extends Fragment {
                                     MS_Timer = 30;
 
 
-                                // Chiudi il timer
-                                timer.cancel();
-                            }
+                                    // Chiudi il timer
+                                    timer.cancel();
+                                }
                             });
                         }
                     }, 0, 500); // 500 ms di ritardo tra un controllo e l'altro
-                    MS_Timer = 300;
+                    //MS_Timer = 300;
                     break;
 
                 //-------- aspetto un dispenser per download ---------
                 case 30:
-                    List<ScanResult> wifiList =getAvailableWifiList();
+                    List<ScanResult> wifiList = getAvailableWifiList();
                     if (wifiList != null) {
                         for (android.net.wifi.ScanResult result : wifiList) {
                             // Puoi ottenere informazioni su ciascuna rete Wi-Fi, ad esempio:
                             String ssid = result.SSID;
                             String bssid = result.BSSID;
                             int signalStrength = result.level;
-
                             // Fai qualcosa con le informazioni, ad esempio, visualizzale in un Toast
-                            String message = "SSID: " + ssid + "\nBSSID: " + bssid + "\nSegnale: " + signalStrength + " dBm";
-                            Toast.makeText(getActivity(), message, Toast.LENGTH_SHORT).show();
-                            MS_Timer = 300;
+                            //String message = "SSID: " + ssid + "\nBSSID: " + bssid + "\nSegnale: " + signalStrength + " dBm";
+                            //Toast.makeText(getActivity(), message, Toast.LENGTH_SHORT).show();
+
+
+                        }
+
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            final NetworkRequest networkRequest = new NetworkRequest.Builder()
+                                    .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                                    .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                                    .setNetworkSpecifier(new WifiNetworkSpecifier.Builder()
+                                            .setSsidPattern(new PatternMatcher("Dispenser2HotSpot", PatternMatcher.PATTERN_PREFIX))
+                                            .setWpa2Passphrase("biagioxxx")
+                                            .build())
+                                    .build();
+
+                            final ConnectivityManager connectivityManager = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+                            final ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
+                                @Override
+                                public void onAvailable(@NonNull Network network) {
+                                    super.onAvailable(network);
+                                    // You can use this network
+                                    connectivityManager.bindProcessToNetwork(network);
+                                    MS_Timer = 40;
+                                }
+
+                                @Override
+                                public void onUnavailable() {
+                                    super.onUnavailable();
+                                    // The requested network is not available
+                                }
+                            };
+                            try {
+                                if (Request_select_lan_hotspot_dispenser==false)
+                                    connectivityManager.requestNetwork(networkRequest, networkCallback);
+                                Request_select_lan_hotspot_dispenser=true;
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                MS_Timer = 0;
+                            }
+                        } else {
+                            // For Android versions below Q, you can use the WifiManager class to manage WiFi connections
                         }
                     }
+
+                    break;
+                //---------- Mi sono collegato al dispenser hotspot ------------
+                case 40:
+                    //binding.toolbar.getMenu().findItem(R.id.action_download).setEnabled(false);
+                    //binding.toolbar.getMenu().findItem(R.id.action_upload).setEnabled(false);
+                    // Crea un'istanza di ExecutorService
+                    ExecutorService executorService_disp = Executors.newSingleThreadExecutor();
+                    SecondFragment.SincronizzazioneTask_esp32 sincronizzazioneTask_disp = new SecondFragment.SincronizzazioneTask_esp32(executorService_disp, new SincronizzaLibreriaSuDispenser());
+                    Future<Void> future_disp = sincronizzazioneTask_disp.sincronizza();
+                    Timer timer_disp = new Timer();
+                    timer_disp.scheduleAtFixedRate(new TimerTask() {
+                        @Override
+                        public void run() {
+                            getActivity().runOnUiThread(() -> {
+                                textView = getView().findViewById(R.id.textView2);
+                                // Chiamata al metodo per scrivere il testo nella TextView
+                                textView.setText(byteArrayOutputStream.toString());
+                                if (future_disp.isDone()) {
+                                    // Il task è completato, esegui azioni post-completamento nel thread UI principale
+                                    Toast.makeText(getActivity(), "File sincronizzati dal server.", Toast.LENGTH_SHORT).show();
+                                    getView().findViewById(R.id.button_download).setEnabled(true);
+                                    getView().findViewById(R.id.button_second).setEnabled(true);
+                                    getView().findViewById(R.id.button_upload).setEnabled(true);
+                                    textView = getView().findViewById(R.id.textView2);
+                                    // Chiamata al metodo per scrivere il testo nella TextView
+
+                                    textView.setText(byteArrayOutputStream.toString());
+                                    System.setOut(originalSystemOut);
+                                    MS_Timer = 30;
+
+
+                                    // Chiudi il timer
+                                    timer_disp.cancel();
+                                }
+                            });
+                        }
+                    }, 0, 500); // 500 ms di ritardo tra un controllo e l'altro
+
                     break;
             }
+
 
 
 
@@ -185,6 +272,13 @@ public class SecondFragment extends Fragment {
 
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.System.canWrite(getContext())) {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:" + getContext().getPackageName()));
+                startActivityForResult(intent, 200);
+            }
+
 
         text_in_wiew ="";
         binding.buttonSecond.setOnClickListener(new View.OnClickListener() {
@@ -243,6 +337,28 @@ public class SecondFragment extends Fragment {
         return false;
     }
 
+
+    //-------------- classe per tred conessione server esp32  ----------
+    private class SincronizzazioneTask_esp32 {
+
+        private final ExecutorService executorService;
+        private final SincronizzaLibreriaSuDispenser sincronizzatore;
+
+        public SincronizzazioneTask_esp32(ExecutorService executorService, SincronizzaLibreriaSuDispenser sincronizzatore) {
+            this.executorService = executorService;
+            this.sincronizzatore = sincronizzatore;
+        }
+
+        public Future<Void> sincronizza() {
+            Callable<Void> callable = () -> {
+                // Chiamare il metodo di sincronizzazione della tua classe
+                sincronizzatore.sincronizzaLibreria(localDirectory.getAbsolutePath(),"/home/croen/SD");
+                return null;
+            };
+
+            return executorService.submit(callable);
+        }
+    }
     //-------------- classe per tred conessione server remoto internet  ----------
     private class SincronizzazioneTask {
 
