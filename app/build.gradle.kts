@@ -36,6 +36,9 @@ dependencies {
     implementation(files("libs/ftp4j-1.7.2.jar"))
     implementation ("com.jcraft:jsch:0.1.55")
 
+    implementation ("commons-net:commons-net:3.8.0")
+
+
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.10.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")

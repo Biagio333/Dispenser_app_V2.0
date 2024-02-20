@@ -49,6 +49,7 @@ import android.net.Uri;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.IOException;
+import android.net.wifi.WifiInfo;
 
 
 public class SecondFragment extends Fragment {
@@ -133,69 +134,31 @@ public class SecondFragment extends Fragment {
                             });
                         }
                     }, 0, 500); // 500 ms di ritardo tra un controllo e l'altro
-                    //MS_Timer = 300;
+                    MS_Timer = 300;
                     break;
 
                 //-------- aspetto un dispenser per download ---------
                 case 30:
-                    List<ScanResult> wifiList = getAvailableWifiList();
-                    if (wifiList != null) {
-                        for (android.net.wifi.ScanResult result : wifiList) {
-                            // Puoi ottenere informazioni su ciascuna rete Wi-Fi, ad esempio:
-                            String ssid = result.SSID;
-                            String bssid = result.BSSID;
-                            int signalStrength = result.level;
-                            // Fai qualcosa con le informazioni, ad esempio, visualizzale in un Toast
-                            //String message = "SSID: " + ssid + "\nBSSID: " + bssid + "\nSegnale: " + signalStrength + " dBm";
-                            //Toast.makeText(getActivity(), message, Toast.LENGTH_SHORT).show();
-
-
-                        }
-
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                            final NetworkRequest networkRequest = new NetworkRequest.Builder()
-                                    .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
-                                    .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                                    .setNetworkSpecifier(new WifiNetworkSpecifier.Builder()
-                                            .setSsidPattern(new PatternMatcher("Dispenser2HotSpot", PatternMatcher.PATTERN_PREFIX))
-                                            .setWpa2Passphrase("biagioxxx")
-                                            .build())
-                                    .build();
-
-                            final ConnectivityManager connectivityManager = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
-                            final ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
-                                @Override
-                                public void onAvailable(@NonNull Network network) {
-                                    super.onAvailable(network);
-                                    // You can use this network
-                                    connectivityManager.bindProcessToNetwork(network);
-                                    MS_Timer = 40;
-                                }
-
-                                @Override
-                                public void onUnavailable() {
-                                    super.onUnavailable();
-                                    // The requested network is not available
-                                }
-                            };
-                            try {
-                                if (Request_select_lan_hotspot_dispenser==false)
-                                    connectivityManager.requestNetwork(networkRequest, networkCallback);
-                                Request_select_lan_hotspot_dispenser=true;
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                                MS_Timer = 0;
-                            }
-                        } else {
-                            // For Android versions below Q, you can use the WifiManager class to manage WiFi connections
+                    String ssid = "";
+                    WifiManager wifiManager = (WifiManager) getActivity().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                    if (wifiManager != null) {
+                        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+                        if (wifiInfo != null) {
+                             ssid = wifiInfo.getSSID(); // Get the SSID of the currently connected WiFi network
                         }
                     }
+
+                    if (ssid.equals("\"Dispenser2HotSpot\""))
+                    {
+                        MS_Timer = 40;
+                        break;
+                    }
+
+
 
                     break;
                 //---------- Mi sono collegato al dispenser hotspot ------------
                 case 40:
-                    //binding.toolbar.getMenu().findItem(R.id.action_download).setEnabled(false);
-                    //binding.toolbar.getMenu().findItem(R.id.action_upload).setEnabled(false);
                     // Crea un'istanza di ExecutorService
                     ExecutorService executorService_disp = Executors.newSingleThreadExecutor();
                     SecondFragment.SincronizzazioneTask_esp32 sincronizzazioneTask_disp = new SecondFragment.SincronizzazioneTask_esp32(executorService_disp, new SincronizzaLibreriaSuDispenser());
@@ -219,16 +182,14 @@ public class SecondFragment extends Fragment {
 
                                     textView.setText(byteArrayOutputStream.toString());
                                     System.setOut(originalSystemOut);
-                                    MS_Timer = 30;
-
-
+                                    MS_Timer = 0;
                                     // Chiudi il timer
                                     timer_disp.cancel();
                                 }
                             });
                         }
                     }, 0, 500); // 500 ms di ritardo tra un controllo e l'altro
-
+                    MS_Timer = 300;
                     break;
             }
 
@@ -301,6 +262,19 @@ public class SecondFragment extends Fragment {
 
             }
         });
+
+        binding.buttonUpload.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                MS_Timer=30;
+                System.setOut(printStream);
+                getView().findViewById(R.id.button_download).setEnabled(false);
+                getView().findViewById(R.id.button_second).setEnabled(false);
+                getView().findViewById(R.id.button_upload).setEnabled(false);
+
+
+            }
+        });
     }
 
     @Override
@@ -352,7 +326,7 @@ public class SecondFragment extends Fragment {
         public Future<Void> sincronizza() {
             Callable<Void> callable = () -> {
                 // Chiamare il metodo di sincronizzazione della tua classe
-                sincronizzatore.sincronizzaLibreria(localDirectory.getAbsolutePath(),"/home/croen/SD");
+                sincronizzatore.sincronizzaLibreria(localDirectory.getAbsolutePath(),"/");
                 return null;
             };
 

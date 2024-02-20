@@ -4,6 +4,7 @@ import com.jcraft.jsch.*;
 import java.io.File;
 import java.util.Vector;
 
+
 public class sincronizzaLibreriaServerInternet {
 
     private static final String SERVER = "75.119.141.254";
@@ -31,6 +32,12 @@ public class sincronizzaLibreriaServerInternet {
             Channel channel = session.openChannel("sftp");
             channel.connect();
             sftpChannel = (ChannelSftp) channel;
+
+            deleteLocalDirectoryRecursively(new File(cartellaLocale));
+            //creo la cartella locale con nome  cartellaLocale
+            creaNuovaCartellaLocale(cartellaLocale);
+
+
 
             ricorsivaSincronizzazione(sftpChannel, cartellaRemota, cartellaLocale);
             System.out.println("OK" );
@@ -118,6 +125,21 @@ private boolean fileEsisteLocalmente(String percorsoLocale) {
 
         // Confronta data e dimensione per determinare se il file è diverso
         return (dataLocale != dataRemota || dimensioneLocale != dimensioneRemota);
+    }
+
+    //--------------------------------------------------------------------------------
+    public void deleteLocalDirectoryRecursively(File dir) {
+        File[] files = dir.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    deleteLocalDirectoryRecursively(file);
+                } else {
+                    file.delete();
+                }
+            }
+        }
+        dir.delete();
     }
 
 }
