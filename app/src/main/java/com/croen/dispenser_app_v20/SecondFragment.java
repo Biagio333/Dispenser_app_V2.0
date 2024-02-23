@@ -50,8 +50,9 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import android.net.wifi.WifiInfo;
-
-
+import android.os.Environment;
+import java.net.URL;
+import java.net.HttpURLConnection;
 public class SecondFragment extends Fragment {
     FTPClient client ;
     Executor executor = Executors.newSingleThreadExecutor();
@@ -74,32 +75,84 @@ public class SecondFragment extends Fragment {
     //timer
     private final int interval = 1000; // 1 secondo
     private Handler handler = new Handler(Looper.getMainLooper()); // Handler associato al thread principale
+
+    private boolean InternetAvailable = false;
+    private boolean DispenserAvailable = false;
+    private int counter_rescan_internet=0;
     private Runnable runnable = new Runnable() {
         //questo gira di continuo ogni secondo metto tutta la logica x il download
         public void run() {
 
             switch (MS_Timer) {
                 case 0:
+                    counter_rescan_internet++;
+                    if (counter_rescan_internet>20)
+                    {
+                        counter_rescan_internet=0;
+                        MS_Timer=1;
+                    }
+                    break;
+                case 1:
                     Request_select_lan_hotspot_dispenser=false;
+                    InternetAvailable=MyisInternetAvailable();
 
+                   WifiManager wifiManager = (WifiManager) getActivity().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                    if (wifiManager != null) {
+                        wifiManager.startScan();
+                        List<ScanResult> scanResults = wifiManager.getScanResults();
+                        for (ScanResult scanResult : scanResults) {
+                            if (scanResult.SSID.equals("\"Dispenser2HotSpot\""))
+                            {
+                                DispenserAvailable=true;
+                            }
+                            else {
+                                DispenserAvailable=false;
+                            }
+                        }
+                    }
+                    MS_Timer = 2;
                     break;
                 case 2:
-
+                    counter_rescan_internet++;
+                    if (counter_rescan_internet>20)
+                    {
+                        counter_rescan_internet=0;
+                        MS_Timer=1;
+                    }
                     // Controlla la connessione Internet
                     Button BuDownload = getView().findViewById(R.id.button_download); // Sostituisci con l'ID reale del tuo pulsante
-                    if (isInternetAvailable()) {
+                    if (InternetAvailable) {
                         BuDownload.setEnabled(true);
                     } else {
                         BuDownload.setEnabled(false);
                     }
+                    if (DispenserAvailable) {
+                        getView().findViewById(R.id.button_second).setEnabled(true);
+                    } else {
+                        getView().findViewById(R.id.button_second).setEnabled(false);
+                    }
+
                     break;
+
 
                 case 5:
                     //showYesNoDownloadFromServer();
                     //MS_Timer = 300;
                     break;
-
                 case 10:
+
+                    WifiManager wifiManager6 = (WifiManager) getActivity().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                    if (wifiManager6 != null) {
+                        WifiInfo wifiInfo = wifiManager6.getConnectionInfo();
+                        if (wifiInfo != null) {
+                            disconnectFromWifiNetwork();
+                            MS_Timer = 12;
+                        }
+                    }
+                    break;
+
+                case 12:
+
                     //binding.toolbar.getMenu().findItem(R.id.action_download).setEnabled(false);
                     //binding.toolbar.getMenu().findItem(R.id.action_upload).setEnabled(false);
                     // Crea un'istanza di ExecutorService
@@ -125,7 +178,7 @@ public class SecondFragment extends Fragment {
 
                                     textView.setText(byteArrayOutputStream.toString());
                                     System.setOut(originalSystemOut);
-                                    MS_Timer = 30;
+                                    MS_Timer = 0;
 
 
                                     // Chiudi il timer
@@ -140,21 +193,41 @@ public class SecondFragment extends Fragment {
                 //-------- aspetto un dispenser per download ---------
                 case 30:
                     String ssid = "";
-                    WifiManager wifiManager = (WifiManager) getActivity().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-                    if (wifiManager != null) {
-                        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+                    WifiManager wifiManager2 = (WifiManager) getActivity().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                    if (wifiManager2 != null) {
+                        WifiInfo wifiInfo = wifiManager2.getConnectionInfo();
                         if (wifiInfo != null) {
-                             ssid = wifiInfo.getSSID(); // Get the SSID of the currently connected WiFi network
+                            ssid = wifiInfo.getSSID(); // Get the SSID of the currently connected WiFi network
                         }
                     }
-
                     if (ssid.equals("\"Dispenser2HotSpot\""))
                     {
                         MS_Timer = 40;
                         break;
                     }
+                    else
+                    {
+                        connectToWifiNetwork("Dispenser2HotSpot", "biagioxxx");
 
+                        MS_Timer = 32;
+                    }
 
+                    break;
+                case 32:
+                    String ssid2 = "";
+                    WifiManager wifiManager3 = (WifiManager) getActivity().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                    if (wifiManager3 != null) {
+                        WifiInfo wifiInfo = wifiManager3.getConnectionInfo();
+                        if (wifiInfo != null) {
+                             ssid2 = wifiInfo.getSSID(); // Get the SSID of the currently connected WiFi network
+                        }
+                    }
+
+                    if (ssid2.equals("\"Dispenser2HotSpot\""))
+                    {
+                        MS_Timer = 40;
+                        break;
+                    }
 
                     break;
                 //---------- Mi sono collegato al dispenser hotspot ------------
@@ -185,6 +258,8 @@ public class SecondFragment extends Fragment {
                                     MS_Timer = 0;
                                     // Chiudi il timer
                                     timer_disp.cancel();
+                                    // disconnectFromWifiNetwork() ;
+
                                 }
                             });
                         }
@@ -212,6 +287,7 @@ public class SecondFragment extends Fragment {
 
         // Inizializza il percorso della cartella
         localDirectory = new File(getActivity().getFilesDir(), "SD");
+
         // Crea la cartella se non esiste
         if (!localDirectory.exists()) {
             boolean success = localDirectory.mkdirs();
@@ -226,7 +302,7 @@ public class SecondFragment extends Fragment {
 
 
         // Inizia il timer
-        MS_Timer = 2;
+        MS_Timer = 1;
         handler.postDelayed(runnable, interval);
         return binding.getRoot();
     }
@@ -258,7 +334,8 @@ public class SecondFragment extends Fragment {
                 getView().findViewById(R.id.button_download).setEnabled(false);
                 getView().findViewById(R.id.button_second).setEnabled(false);
                 getView().findViewById(R.id.button_upload).setEnabled(false);
-
+                textView = getView().findViewById(R.id.textView2);
+                textView.setText("Download in corso...");
 
             }
         });
@@ -271,6 +348,8 @@ public class SecondFragment extends Fragment {
                 getView().findViewById(R.id.button_download).setEnabled(false);
                 getView().findViewById(R.id.button_second).setEnabled(false);
                 getView().findViewById(R.id.button_upload).setEnabled(false);
+                textView = getView().findViewById(R.id.textView2);
+                textView.setText("Download in corso...");
 
 
             }
@@ -375,8 +454,7 @@ public class SecondFragment extends Fragment {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 // Azioni da eseguire quando l'utente clicca su "Sì"
-                MS_Timer =10; //scarico dal server
-                dialog.dismiss(); // Chiudi il dialogo se necessario
+
             }
         });
 
@@ -385,12 +463,53 @@ public class SecondFragment extends Fragment {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 // Azioni da eseguire quando l'utente clicca su "No"
-                MS_Timer =30; //faccio scansioni rete
-                dialog.dismiss(); // Chiudi il dialogo se necessario
+
             }
         });
 
         // Mostra il dialogo
         builder.show();
     }
+
+public boolean MyisInternetAvailable() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (connectivityManager != null) {
+            NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+            return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+        }
+        return false;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.Q)
+    public void connectToWifiNetwork(String ssid, String password) {
+        WifiNetworkSpecifier wifiNetworkSpecifier = new WifiNetworkSpecifier.Builder()
+                .setSsid(ssid)
+                .setWpa2Passphrase(password)
+                .build();
+
+        NetworkRequest networkRequest = new NetworkRequest.Builder()
+                .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .setNetworkSpecifier(wifiNetworkSpecifier)
+                .build();
+
+        ConnectivityManager connectivityManager = (ConnectivityManager) getActivity().getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onAvailable(@NonNull Network network) {
+                super.onAvailable(network);
+                connectivityManager.bindProcessToNetwork(network);
+            }
+        };
+
+        connectivityManager.requestNetwork(networkRequest, networkCallback);
+    }
+
+    public void disconnectFromWifiNetwork() {
+    ConnectivityManager connectivityManager = (ConnectivityManager) getActivity().getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+    if (connectivityManager != null) {
+        connectivityManager.bindProcessToNetwork(null);
+    }
+}
 }

@@ -19,27 +19,30 @@
 
             <Button
                 android:id="@+id/button_second"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="344dp"
+                android:layout_height="57dp"
                 android:text="@string/previous"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
             <Button
                 android:id="@+id/button_upload"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="170dp"
+                android:layout_height="80dp"
+                android:layout_marginTop="20dp"
                 android:text="Upload to dispenser"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/button_second" />
 
             <Button
                 android:id="@+id/button_download"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="170dp"
+                android:layout_height="80dp"
+                android:layout_marginTop="20dp"
                 android:text="Download from site"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/button_upload" />
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/button_second" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
