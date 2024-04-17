@@ -55,7 +55,7 @@ public class FirstFragment extends Fragment {
         webSettings.setJavaScriptEnabled(true);
 
         // Carica l'URL desiderato
-        webView.loadUrl("https://croen.org");
+        webView.loadUrl("https://inidea.eu");
 
 
         //aggiorno cartella dal server ftp

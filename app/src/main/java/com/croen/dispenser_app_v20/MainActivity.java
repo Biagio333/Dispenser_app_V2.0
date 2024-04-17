@@ -77,11 +77,51 @@ public class MainActivity extends AppCompatActivity {
             // ...
         } else {
             // Richiedi il permesso
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.INTERNET}, CODICE_PERMESSO_INTERNET);
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.INTERNET}, 1);
         }
 
-        // Richiedi il permesso a tempo di esecuzione
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, CODICE_PERMESSO_INTERNET);
+        // Verifica se il permesso è già stato concesso
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_WIFI_STATE) == PackageManager.PERMISSION_GRANTED) {
+            // Il permesso è già stato concesso, esegui l'azione che richiede il permesso
+            // ...
+        } else {
+            // Richiedi il permesso
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_WIFI_STATE}, 2);
+        }
+
+        // Verifica se il permesso è già stato concesso
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CHANGE_WIFI_STATE) == PackageManager.PERMISSION_GRANTED) {
+            // Il permesso è già stato concesso, esegui l'azione che richiede il permesso
+            // ...
+        } else {
+            // Richiedi il permesso
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CHANGE_WIFI_STATE}, 4);
+        }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            // Il permesso è già stato concesso, esegui l'azione che richiede il permesso
+            // ...
+        } else {
+            // Richiedi il permesso
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 5);
+        }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            // Il permesso è già stato concesso, esegui l'azione che richiede il permesso
+            // ...
+        } else {
+            // Richiedi il permesso
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 6);
+        }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_SETTINGS) == PackageManager.PERMISSION_GRANTED) {
+            // Il permesso è già stato concesso, esegui l'azione che richiede il permesso
+            // ...
+        } else {
+            // Richiedi il permesso
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_SETTINGS}, 6);
+        }
+
 
     }
 

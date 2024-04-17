@@ -13,7 +13,8 @@ import java.util.Arrays;
 import org.apache.commons.net.ftp.FTP;
 public class SincronizzaLibreriaSuDispenser {
 
-    private static final String SERVER = "192.168.100.1";
+    //private static final String SERVER = "192.168.100.1";
+    private static final String SERVER = "192.168.1.136";
     private static final int PORT = 21;
     private static final String USERNAME = "ftp";
     private static final String PASSWORD = "ftp";
@@ -32,15 +33,29 @@ public class SincronizzaLibreriaSuDispenser {
         ftpClient.configure  (config);
 
         try {
+            ftpClient.setConnectTimeout(10000); // Imposta il timeout di connessione
             ftpClient.connect(SERVER, PORT);
             ftpClient.login(USERNAME, PASSWORD);
 
-            ftpClient.enterLocalPassiveMode();
+             //ftpClient.enterLocalPassiveMode();
+             ftpClient.setFileType(FTP.BINARY_FILE_TYPE); // Se si sta caricando un file binario, come ad esempio un'immagine
+            ftpClient.setBufferSize(1024);
              close_connection =true;
 
             // Delete the /SD_new directory if it exists
+            FTPFile[] existingDirectories;
             String dirToDelete = "/sd_new";
-            FTPFile[] existingDirectories = ftpClient.listDirectories(dirToDelete);
+            try {
+                ftpClient.changeWorkingDirectory("/");
+                existingDirectories = ftpClient.listDirectories(dirToDelete);
+                // Gestisci l'elenco delle directory qui...
+            } catch (IOException e) {
+                e.printStackTrace();
+                // Gestisci l'eccezione e prova a riconnetterti al server FTP prima di riprovare
+            }
+            //String dirToDelete = "/sd_new";
+            //FTPFile[] existingDirectories = ftpClient.listDirectories(dirToDelete);
+
             if (doesDirectoryExist(ftpClient, dirToDelete))  {
                 deleteDirectoryRecursively(ftpClient,dirToDelete);
                 System.out.println("Directory removed: " + dirToDelete);
@@ -119,12 +134,28 @@ public class SincronizzaLibreriaSuDispenser {
     private void uploadDirectoryRecursively(FTPClient ftpClient, String localPath, String remotePath) throws IOException {
         File localDir = new File(localPath);
         File[] files = localDir.listFiles();
+        //imposto il trsferimento di un file x volta
+
 
         if (files != null && files.length > 0) {
             for (File file : files) {
+                try {
+                    // Mette in pausa l'esecuzione del thread corrente per 5 secondi
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                    // Gestisce l'eccezione
+                    e.printStackTrace();
+                }
                 String remoteFilePath = remotePath + "/" + file.getName();
                 if (file.isFile()) {
                     for (int i = 0; i < 3; i++) {
+                        try {
+                            // Mette in pausa l'esecuzione del thread corrente per 5 secondi
+                            Thread.sleep(10);
+                        } catch (InterruptedException e) {
+                            // Gestisce l'eccezione
+                            e.printStackTrace();
+                        }
                         try{
                             ftpClient.changeWorkingDirectory(remotePath);
                             break;
@@ -134,9 +165,23 @@ public class SincronizzaLibreriaSuDispenser {
                         }
                     }
                     for (int i = 0; i < 3; i++) { // Tentare l'upload fino a tre volte
+                        try {
+                            // Mette in pausa l'esecuzione del thread corrente per 5 secondi
+                            Thread.sleep(10);
+                        } catch (InterruptedException e) {
+                            // Gestisce l'eccezione
+                            e.printStackTrace();
+                        }
                         boolean fileExists = false;
                         FTPFile[] remoteFiles = ftpClient.listFiles();
                         for (FTPFile remoteFile : remoteFiles) {
+                            try {
+                                // Mette in pausa l'esecuzione del thread corrente per 5 secondi
+                                Thread.sleep(10);
+                            } catch (InterruptedException e) {
+                                // Gestisce l'eccezione
+                                e.printStackTrace();
+                            }
                             if (remoteFile.isFile() && remoteFile.getName().equals(file.getName())) {
                                 ftpClient.deleteFile(file.getName());
                             }
@@ -205,6 +250,13 @@ public boolean doesDirectoryExist(FTPClient ftpClient, String dirToCheck) throws
             FTPFile[] files = ftpClient.listFiles();
             if (files != null && files.length > 0) {
                 for (FTPFile file : files) {
+                    try {
+                        // Mette in pausa l'esecuzione del thread corrente per 5 secondi
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                        // Gestisce l'eccezione
+                        e.printStackTrace();
+                    }
                     String fileName = file.getName();
                     if (fileName.equals(".") || fileName.equals("..")) {
                         continue; // Ignora le directory correnti e genitori

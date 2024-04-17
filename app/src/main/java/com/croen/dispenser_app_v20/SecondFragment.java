@@ -1,8 +1,10 @@
 package com.croen.dispenser_app_v20;
 
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.pm.PackageInfo;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -23,6 +25,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
@@ -31,6 +34,7 @@ import com.croen.dispenser_app_v20.databinding.FragmentSecondBinding;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -41,20 +45,30 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import it.sauronsoftware.ftp4j.FTPClient;
-import android.net.NetworkRequest;import android.net.wifi.WifiNetworkSpecifier;
-import android.os.PatternMatcher;import android.net.ConnectivityManager;
+
+import android.net.NetworkRequest;
+import android.net.wifi.WifiNetworkSpecifier;
+import android.os.PatternMatcher;
+import android.net.ConnectivityManager;
 import android.provider.Settings;
 import android.content.Intent;
 import android.net.Uri;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.IOException;
+
 import android.net.wifi.WifiInfo;
 import android.os.Environment;
+
 import java.net.URL;
 import java.net.HttpURLConnection;
+
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+
 public class SecondFragment extends Fragment {
-    FTPClient client ;
+    FTPClient client;
     Executor executor = Executors.newSingleThreadExecutor();
 
     //per catturare output
@@ -68,42 +82,47 @@ public class SecondFragment extends Fragment {
     File localDirectory;
     private FragmentSecondBinding binding;
     private TextView textView;
-    String text_in_wiew="";
-    public int MS_Timer=0;
+    String text_in_wiew = "";
+    public int MS_Timer = 0;
 
-    public boolean Request_select_lan_hotspot_dispenser=false;
+    public boolean Request_select_lan_hotspot_dispenser = false;
     //timer
     private final int interval = 1000; // 1 secondo
     private Handler handler = new Handler(Looper.getMainLooper()); // Handler associato al thread principale
 
     private boolean InternetAvailable = false;
     private boolean DispenserAvailable = false;
-    private int counter_rescan_internet=0;
-    private Runnable runnable = new Runnable() {
+    private int counter_rescan_internet = 0;
+
+    public WifiManager wifiManager;
+    Runnable runnable = new Runnable() {
         //questo gira di continuo ogni secondo metto tutta la logica x il download
+        @Override
         public void run() {
 
             switch (MS_Timer) {
                 case 0:
                     counter_rescan_internet++;
-                    if (counter_rescan_internet>20)
-                    {
-                        counter_rescan_internet=0;
-                        MS_Timer=1;
+                    if (counter_rescan_internet > 20) {
+                        counter_rescan_internet = 0;
+                        MS_Timer = 1;
                     }
                     break;
                 case 1:
-                    Request_select_lan_hotspot_dispenser=false;
+                    Request_select_lan_hotspot_dispenser = false;
                     InternetAvailable=MyisInternetAvailable();
 
-                   WifiManager wifiManager = (WifiManager) getActivity().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+
                     if (wifiManager != null) {
                         wifiManager.startScan();
+
                         List<ScanResult> scanResults = wifiManager.getScanResults();
                         for (ScanResult scanResult : scanResults) {
-                            if (scanResult.SSID.equals("\"Dispenser2HotSpot\""))
+                            if (scanResult.SSID.equals("Dispenser2HotSpot"))
                             {
                                 DispenserAvailable=true;
+                                MS_Timer = 2;
+                                break;
                             }
                             else {
                                 DispenserAvailable=false;
@@ -119,6 +138,7 @@ public class SecondFragment extends Fragment {
                         counter_rescan_internet=0;
                         MS_Timer=1;
                     }
+                    List<ScanResult> scanResults = wifiManager.getScanResults();
                     // Controlla la connessione Internet
                     Button BuDownload = getView().findViewById(R.id.button_download); // Sostituisci con l'ID reale del tuo pulsante
                     if (InternetAvailable) {
@@ -127,9 +147,9 @@ public class SecondFragment extends Fragment {
                         BuDownload.setEnabled(false);
                     }
                     if (DispenserAvailable) {
-                        getView().findViewById(R.id.button_second).setEnabled(true);
+                        getView().findViewById(R.id.button_upload).setEnabled(true);
                     } else {
-                        getView().findViewById(R.id.button_second).setEnabled(false);
+                        getView().findViewById(R.id.button_upload).setEnabled(false);
                     }
 
                     break;
@@ -141,9 +161,9 @@ public class SecondFragment extends Fragment {
                     break;
                 case 10:
 
-                    WifiManager wifiManager6 = (WifiManager) getActivity().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-                    if (wifiManager6 != null) {
-                        WifiInfo wifiInfo = wifiManager6.getConnectionInfo();
+
+                    if (wifiManager != null) {
+                        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
                         if (wifiInfo != null) {
                             disconnectFromWifiNetwork();
                             MS_Timer = 12;
@@ -193,9 +213,9 @@ public class SecondFragment extends Fragment {
                 //-------- aspetto un dispenser per download ---------
                 case 30:
                     String ssid = "";
-                    WifiManager wifiManager2 = (WifiManager) getActivity().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-                    if (wifiManager2 != null) {
-                        WifiInfo wifiInfo = wifiManager2.getConnectionInfo();
+
+                    if (wifiManager != null) {
+                        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
                         if (wifiInfo != null) {
                             ssid = wifiInfo.getSSID(); // Get the SSID of the currently connected WiFi network
                         }
@@ -208,16 +228,22 @@ public class SecondFragment extends Fragment {
                     else
                     {
                         connectToWifiNetwork("Dispenser2HotSpot", "biagioxxx");
-
+                        counter_rescan_internet=0;
                         MS_Timer = 32;
                     }
 
                     break;
                 case 32:
+                    counter_rescan_internet++;
+                    if (counter_rescan_internet>20)
+                    {
+                        counter_rescan_internet=0;
+                        MS_Timer=30;
+                    }
                     String ssid2 = "";
-                    WifiManager wifiManager3 = (WifiManager) getActivity().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-                    if (wifiManager3 != null) {
-                        WifiInfo wifiInfo = wifiManager3.getConnectionInfo();
+
+                    if (wifiManager != null) {
+                        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
                         if (wifiInfo != null) {
                              ssid2 = wifiInfo.getSSID(); // Get the SSID of the currently connected WiFi network
                         }
@@ -301,6 +327,7 @@ public class SecondFragment extends Fragment {
         }
 
 
+
         // Inizia il timer
         MS_Timer = 1;
         handler.postDelayed(runnable, interval);
@@ -315,6 +342,10 @@ public class SecondFragment extends Fragment {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:" + getContext().getPackageName()));
                 startActivityForResult(intent, 200);
             }
+
+        wifiManager = (WifiManager) getActivity().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+
+
 
 
         text_in_wiew ="";
@@ -338,6 +369,7 @@ public class SecondFragment extends Fragment {
                 textView.setText("Download in corso...");
 
             }
+
         });
 
         binding.buttonUpload.setOnClickListener(new View.OnClickListener() {
@@ -349,7 +381,7 @@ public class SecondFragment extends Fragment {
                 getView().findViewById(R.id.button_second).setEnabled(false);
                 getView().findViewById(R.id.button_upload).setEnabled(false);
                 textView = getView().findViewById(R.id.textView2);
-                textView.setText("Download in corso...");
+                textView.setText("UpLoad in corso...");
 
 
             }
@@ -362,33 +394,9 @@ public class SecondFragment extends Fragment {
         binding = null;
         MS_Timer=0;
     }
-    // Metodo per controllare la disponibilità della connessione Internet
-    private boolean isInternetAvailable() {
-        ConnectivityManager connectivityManager = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (connectivityManager != null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                return isNetworkAvailable(connectivityManager);
-            } else {
-                // Versioni precedenti a Marshmallow
-                NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
-                return activeNetworkInfo != null && activeNetworkInfo.isConnected();
-            }
-        }
-        return false;
-    }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
-    private boolean isNetworkAvailable(ConnectivityManager connectivityManager) {
-        Network network = connectivityManager.getActiveNetwork();
-        if (network != null) {
-            NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(network);
-            return networkCapabilities != null &&
-                    (networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                            networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                            networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET));
-        }
-        return false;
-    }
+
+
 
 
     //-------------- classe per tred conessione server esp32  ----------
@@ -434,42 +442,6 @@ public class SecondFragment extends Fragment {
         }
     }
 
-    private List<android.net.wifi.ScanResult> getAvailableWifiList() {
-        WifiManager wifiManager = (WifiManager) getActivity().getSystemService(Context.WIFI_SERVICE);
-        if (wifiManager != null) {
-            wifiManager.startScan();
-
-            return wifiManager.getScanResults();
-        }
-        return null;
-    }
-
-    private void showYesNoDownloadFromServer() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(requireActivity());
-        builder.setTitle("Internet avaible");
-        builder.setMessage("Internet is avaible, do you wont download File from server ?");
-
-        // Pulsante "Sì"
-        builder.setPositiveButton("Sì", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                // Azioni da eseguire quando l'utente clicca su "Sì"
-
-            }
-        });
-
-        // Pulsante "No"
-        builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                // Azioni da eseguire quando l'utente clicca su "No"
-
-            }
-        });
-
-        // Mostra il dialogo
-        builder.show();
-    }
 
 public boolean MyisInternetAvailable() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
