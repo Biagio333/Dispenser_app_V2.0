@@ -117,23 +117,27 @@ public class SecondFragment extends Fragment {
                         wifiManager.startScan();
 
                         List<ScanResult> scanResults = wifiManager.getScanResults();
-                        for (ScanResult scanResult : scanResults) {
-                            if (scanResult.SSID.equals("Dispenser2HotSpot"))
-                            {
-                                DispenserAvailable=true;
-                                MS_Timer = 2;
-                                break;
-                            }
-                            else {
-                                DispenserAvailable=false;
-                            }
+                        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+                        String ssid2 = "";
+                        if (wifiInfo != null) {
+                            ssid2 = wifiInfo.getSSID(); // Get the SSID of the currently connected WiFi network
                         }
+
+                        if (ssid2.equals("\"Dispenser2HotSpot\""))
+                        {
+                            DispenserAvailable=true;
+
+                        }
+                        else {
+                            DispenserAvailable=false;
+                        }
+
                     }
                     MS_Timer = 2;
                     break;
                 case 2:
                     counter_rescan_internet++;
-                    if (counter_rescan_internet>20)
+                    if (counter_rescan_internet>5)
                     {
                         counter_rescan_internet=0;
                         MS_Timer=1;
@@ -212,48 +216,7 @@ public class SecondFragment extends Fragment {
 
                 //-------- aspetto un dispenser per download ---------
                 case 30:
-                    String ssid = "";
-
-                    if (wifiManager != null) {
-                        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-                        if (wifiInfo != null) {
-                            ssid = wifiInfo.getSSID(); // Get the SSID of the currently connected WiFi network
-                        }
-                    }
-                    if (ssid.equals("\"Dispenser2HotSpot\""))
-                    {
                         MS_Timer = 40;
-                        break;
-                    }
-                    else
-                    {
-                        connectToWifiNetwork("Dispenser2HotSpot", "biagioxxx");
-                        counter_rescan_internet=0;
-                        MS_Timer = 32;
-                    }
-
-                    break;
-                case 32:
-                    counter_rescan_internet++;
-                    if (counter_rescan_internet>20)
-                    {
-                        counter_rescan_internet=0;
-                        MS_Timer=30;
-                    }
-                    String ssid2 = "";
-
-                    if (wifiManager != null) {
-                        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-                        if (wifiInfo != null) {
-                             ssid2 = wifiInfo.getSSID(); // Get the SSID of the currently connected WiFi network
-                        }
-                    }
-
-                    if (ssid2.equals("\"Dispenser2HotSpot\""))
-                    {
-                        MS_Timer = 40;
-                        break;
-                    }
 
                     break;
                 //---------- Mi sono collegato al dispenser hotspot ------------

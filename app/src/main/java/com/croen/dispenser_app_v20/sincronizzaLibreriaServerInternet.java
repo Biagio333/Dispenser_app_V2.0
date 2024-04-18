@@ -26,7 +26,9 @@ public class sincronizzaLibreriaServerInternet {
             session = jsch.getSession(USERNAME, SERVER, PORT);
             session.setPassword(PASSWORD);
             session.setConfig("StrictHostKeyChecking", "no");
+            session.setTimeout(5000);
             session.connect();
+
 
             // Apri il canale SFTP
             Channel channel = session.openChannel("sftp");
@@ -40,10 +42,14 @@ public class sincronizzaLibreriaServerInternet {
 
 
             ricorsivaSincronizzazione(sftpChannel, cartellaRemota, cartellaLocale);
-            System.out.println("OK" );
+            System.out.println("---------------------------");
+            System.out.println("Sincronizzazione completata");
+            System.out.println("---------------------------");
         } catch (JSchException | SftpException e) {
             e.printStackTrace();
-            System.out.println("KO" );
+            System.out.println("---------------------------");
+            System.out.println("Sincronizzazione Fallita");
+            System.out.println("---------------------------");
         } finally {
             // Chiudi la connessione SFTP
             if (sftpChannel != null) {
