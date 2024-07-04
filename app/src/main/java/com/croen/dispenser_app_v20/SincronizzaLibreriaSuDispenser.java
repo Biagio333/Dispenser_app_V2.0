@@ -1,16 +1,15 @@
 package com.croen.dispenser_app_v20;
 
+import org.apache.commons.net.PrintCommandListener;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPClient;
-import org.apache.commons.net.ftp.FTPFile;
+import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClientConfig;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.IOException;
-import java.util.Arrays;
-import org.apache.commons.net.ftp.FTP;
+
+import java.io.*;
+
+
 public class SincronizzaLibreriaSuDispenser {
 
     private static final String SERVER = "192.168.100.1";
@@ -26,23 +25,37 @@ public class SincronizzaLibreriaSuDispenser {
 
     public void sincronizzaLibreria(String localDirectory, String cartellaRemota) {
         boolean close_connection =false;
+
+
         // Declare and initialize the ftpClient variable
         FTPClient ftpClient = new FTPClient();
 
+        // Aggiungi il PrintCommandListener al client FTP, inviando l'output a System.err
+        ftpClient.addProtocolCommandListener(new PrintCommandListener(System.err, true));
+
+        // Imposta la localizzazione
+        ftpClient.setControlKeepAliveTimeout(30);
+
         FTPClientConfig config = new FTPClientConfig(FTPClientConfig.SYST_UNIX);
+
+
         ftpClient.configure  (config);
 
         try {
+            // Imposta l'encoding di controllo su ISO-8859-1
+            ftpClient.setControlEncoding("ISO-8859-1");
+            ftpClient.setBufferSize(255);
             ftpClient.setConnectTimeout(10000); // Imposta il timeout di connessione
             ftpClient.connect(SERVER, PORT);
             ftpClient.login(USERNAME, PASSWORD);
+            ftpClient.setFileType(FTP.BINARY_FILE_TYPE); // Se si sta caricando un file binario, come ad esempio un'immagine
+            //ftpClient.enterLocalPassiveMode();
+            //ftpClient.enterLocalActiveMode();
 
-             //ftpClient.enterLocalPassiveMode();
-            ftpClient.enterLocalActiveMode();
-             ftpClient.setFileType(FTP.BINARY_FILE_TYPE); // Se si sta caricando un file binario, come ad esempio un'immagine
-             ftpClient.setBufferSize(-1024);
+            // Set the maximum number of connections to 1
 
-             close_connection =true;
+
+            close_connection =true;
 
             // Delete the /SD_new directory if it exists
             FTPFile[] existingDirectories;
@@ -53,6 +66,7 @@ public class SincronizzaLibreriaSuDispenser {
                 // Gestisci l'elenco delle directory qui...
             } catch (IOException e) {
                 e.printStackTrace();
+                throw new NullPointerException("Non riesco ad andare / directori" );
                 // Gestisci l'eccezione e prova a riconnetterti al server FTP prima di riprovare
             }
             //String dirToDelete = "/sd_new";
@@ -64,8 +78,13 @@ public class SincronizzaLibreriaSuDispenser {
             }
             existingDirectories = ftpClient.listDirectories("/");
             // Recreate the /SD_new directory
-            ftpClient.makeDirectory(dirToDelete);
-            System.out.println("Directory created: " + dirToDelete);
+            try {
+                ftpClient.makeDirectory(dirToDelete);
+                System.out.println("Directory created: " + dirToDelete);
+            } catch (IOException e) {
+                System.err.println("Error creating directory: " + e.getMessage());
+                throw new RuntimeException("Failed to create directory: " + dirToDelete, e);
+            }
 
             //cancello sd_old se esiste
             dirToDelete = "/sd_old";
@@ -166,7 +185,9 @@ public class SincronizzaLibreriaSuDispenser {
                             e.printStackTrace();
                         }
                     }
-                    for (int i = 0; i < 10; i++) { // Tentare l'upload fino a tre volte
+                    int i=0;
+                    while (true) { // Tentare l'upload fino a tre volte
+                        i++;
                         try {
                             // Mette in pausa l'esecuzione del thread corrente per 5 secondi
                             Thread.sleep(10);
@@ -175,15 +196,6 @@ public class SincronizzaLibreriaSuDispenser {
                             e.printStackTrace();
                         }
 
-
-
-                            try {
-                                // Mette in pausa l'esecuzione del thread corrente per 5 secondi
-                                Thread.sleep(10);
-                            } catch (InterruptedException e) {
-                                // Gestisce l'eccezione
-                                e.printStackTrace();
-                            }
 
                         try (FileInputStream fis = new FileInputStream(file)) {
 
@@ -209,6 +221,10 @@ public class SincronizzaLibreriaSuDispenser {
                             System.err.println("Errore durante l'upload del file: " + remoteFilePath);
                             e.printStackTrace();
                         }
+                        //genero un eccezione
+                        if (i>10)
+                            throw new NullPointerException("Non sono riuscito a copiare il file"+ remoteFilePath);
+
                     }
                 } else if (file.isDirectory()) {
                     // Check if directory already exists on the server
@@ -240,22 +256,22 @@ public class SincronizzaLibreriaSuDispenser {
         String[] existingDirectories = ftpClient.listNames(dirPath);
         return existingDirectories != null && existingDirectories.length > 0;
     }
-//--------------------------------------------------------------------------------
-public boolean doesDirectoryExist(FTPClient ftpClient, String dirToCheck) throws IOException {
-    FTPFile[] existingDirectories = ftpClient.listDirectories();
-    if (dirToCheck.startsWith("/")) {
-        dirToCheck = dirToCheck.substring(1);
-    }
-    String[] dirToCheckParts = dirToCheck.split("/");
-    String dirToCheckName = dirToCheckParts[dirToCheckParts.length - 1];
-    for (FTPFile dir : existingDirectories) {
-        String dirname = dir.getName();
-        if (dirname.equals(dirToCheckName)) {
-            return true;
+    //--------------------------------------------------------------------------------
+    public boolean doesDirectoryExist(FTPClient ftpClient, String dirToCheck) throws IOException {
+        FTPFile[] existingDirectories = ftpClient.listDirectories();
+        if (dirToCheck.startsWith("/")) {
+            dirToCheck = dirToCheck.substring(1);
         }
+        String[] dirToCheckParts = dirToCheck.split("/");
+        String dirToCheckName = dirToCheckParts[dirToCheckParts.length - 1];
+        for (FTPFile dir : existingDirectories) {
+            String dirname = dir.getName();
+            if (dirname.equals(dirToCheckName)) {
+                return true;
+            }
+        }
+        return false;
     }
-    return false;
-}
     //--------------------------------------------------------------------------------
     public void deleteDirectoryRecursively(FTPClient ftpClient, String dirPath) throws IOException {
         boolean success = ftpClient.changeWorkingDirectory(dirPath);
@@ -309,20 +325,20 @@ public boolean doesDirectoryExist(FTPClient ftpClient, String dirToCheck) throws
             System.out.println("Impossibile cambiare la directory di lavoro a: " + dirPath);
         }
     }
-//--------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------
     public void renameDirectoryIfExist(FTPClient ftpClient, String oldDirName, String newDirName) throws IOException {
-    // Check if old directory exists
-    FTPFile[] existingDirectories = ftpClient.listDirectories(oldDirName);
-    if (existingDirectories != null && existingDirectories.length > 0) {
-        // Rename the directory
-        boolean renamed = ftpClient.rename(oldDirName, newDirName);
-        if (renamed) {
-            System.out.println("Directory renamed from: " + oldDirName + " to: " + newDirName);
+        // Check if old directory exists
+        FTPFile[] existingDirectories = ftpClient.listDirectories(oldDirName);
+        if (existingDirectories != null && existingDirectories.length > 0) {
+            // Rename the directory
+            boolean renamed = ftpClient.rename(oldDirName, newDirName);
+            if (renamed) {
+                System.out.println("Directory renamed from: " + oldDirName + " to: " + newDirName);
+            } else {
+                System.out.println("Failed to rename directory: " + oldDirName);
+            }
         } else {
-            System.out.println("Failed to rename directory: " + oldDirName);
+            System.out.println("Directory does not exist: " + oldDirName);
         }
-    } else {
-        System.out.println("Directory does not exist: " + oldDirName);
     }
-}
 }
