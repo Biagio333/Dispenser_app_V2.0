@@ -3,6 +3,7 @@ plugins {
 }
 
 android {
+
     namespace = "com.croen.dispenser_app_v20"
     compileSdk = 34
 
@@ -29,15 +30,25 @@ android {
     buildFeatures {
         viewBinding = true
     }
+
+    packagingOptions {
+        exclude("META-INF/DEPENDENCIES")
+        exclude("META-INF/LICENSE")
+        exclude("META-INF/LICENSE.txt")
+        exclude("META-INF/NOTICE")
+        exclude("META-INF/NOTICE.txt")
+        exclude("META-INF/ASL2.0")
+    }
 }
+
+
 
 dependencies {
 
     implementation(files("libs/ftp4j-1.7.2.jar"))
     implementation ("com.jcraft:jsch:0.1.55")
 
-    implementation ("commons-net:commons-net:3.6")
-
+    implementation ("commons-net:commons-net:3.11.1")
 
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.10.0")
@@ -47,4 +58,5 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+
 }

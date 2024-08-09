@@ -18,6 +18,7 @@ import androidx.navigation.fragment.NavHostFragment;
 import com.croen.dispenser_app_v20.databinding.FragmentFirstBinding;
 
 import android.webkit.WebSettings;
+import android.webkit.WebViewClient;
 import android.widget.Toast;
 
 import java.io.File;
@@ -50,17 +51,16 @@ public class FirstFragment extends Fragment {
         View rootView = binding.getRoot();
 
         webView = rootView.findViewById(R.id.webView_1);
+
         // Abilita l'esecuzione di JavaScript (se necessario)
         WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
 
+        // Imposta un WebViewClient per gestire la navigazione all'interno del WebView
+        webView.setWebViewClient(new WebViewClient());
+
         // Carica l'URL desiderato
         webView.loadUrl("https://inidea.eu");
-
-
-        //aggiorno cartella dal server ftp
-
-
 
         return rootView;
 

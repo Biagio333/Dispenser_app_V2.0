@@ -40,6 +40,27 @@ public class sincronizzaLibreriaServerInternet {
             creaNuovaCartellaLocale(cartellaLocale);
 
 
+            //copio il firmware
+            sftpChannel.cd("/home/croen/DispenserFirmware");
+            int lastIndex = cartellaLocale.lastIndexOf("/");
+            String path_firmware=cartellaLocale.substring(0, lastIndex);
+
+            File file = new File(path_firmware+"/firmware.bin");  //cancello il firmware se esiste gia'
+            if (file.exists()) {
+                // Tenta di eliminare il file
+                if (file.delete()) {
+                    System.out.println("File eliminato con successo.");
+                } else {
+                    System.out.println("Impossibile eliminare il file.");
+                }
+            } else {
+                System.out.println("Il file non esiste.");
+            }
+
+            System.out.println("Firmware download");
+            sftpChannel.get("firmware.bin",  path_firmware);
+            System.out.println("Firmware been downloaded");
+
 
             ricorsivaSincronizzazione(sftpChannel, cartellaRemota, cartellaLocale);
             System.out.println("---------------------------");

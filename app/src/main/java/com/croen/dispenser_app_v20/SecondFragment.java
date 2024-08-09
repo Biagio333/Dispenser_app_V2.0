@@ -25,16 +25,18 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
-import androidx.core.app.ActivityCompat;
+
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.croen.dispenser_app_v20.databinding.FragmentSecondBinding;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.PrintStream;
-import java.util.ArrayList;
+
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -48,24 +50,27 @@ import it.sauronsoftware.ftp4j.FTPClient;
 
 import android.net.NetworkRequest;
 import android.net.wifi.WifiNetworkSpecifier;
-import android.os.PatternMatcher;
-import android.net.ConnectivityManager;
+
 import android.provider.Settings;
 import android.content.Intent;
 import android.net.Uri;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+
 import java.io.IOException;
 
 import android.net.wifi.WifiInfo;
-import android.os.Environment;
+
 
 import java.net.URL;
 import java.net.HttpURLConnection;
 
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+
+
 
 public class SecondFragment extends Fragment {
     FTPClient client;
@@ -95,6 +100,9 @@ public class SecondFragment extends Fragment {
     private int counter_rescan_internet = 0;
 
     public WifiManager wifiManager;
+
+
+
     Runnable runnable = new Runnable() {
         //questo gira di continuo ogni secondo metto tutta la logica x il download
         @Override
@@ -102,6 +110,7 @@ public class SecondFragment extends Fragment {
 
             switch (MS_Timer) {
                 case 0:
+
                     counter_rescan_internet++;
                     if (counter_rescan_internet > 20) {
                         counter_rescan_internet = 0;
@@ -126,14 +135,21 @@ public class SecondFragment extends Fragment {
                         if (ssid2.equals("\"Dispenser2HotSpot\""))
                         {
                             DispenserAvailable=true;
-
+                            getView().findViewById(R.id.button_download).setEnabled(false);
                         }
                         else {
                             DispenserAvailable=false;
+                            MS_Timer = 2;
                         }
-
+                        if (DispenserAvailable) {
+                            getView().findViewById(R.id.button_upload).setEnabled(true);
+                            getView().findViewById(R.id.button_update_firmware).setEnabled(true);
+                        } else {
+                            getView().findViewById(R.id.button_upload).setEnabled(false);
+                            getView().findViewById(R.id.button_update_firmware).setEnabled(false);
+                        }
                     }
-                    MS_Timer = 2;
+
                     break;
                 case 2:
                     counter_rescan_internet++;
@@ -150,11 +166,7 @@ public class SecondFragment extends Fragment {
                     } else {
                         BuDownload.setEnabled(false);
                     }
-                    if (DispenserAvailable) {
-                        getView().findViewById(R.id.button_upload).setEnabled(true);
-                    } else {
-                        getView().findViewById(R.id.button_upload).setEnabled(false);
-                    }
+
 
                     break;
 
@@ -194,9 +206,10 @@ public class SecondFragment extends Fragment {
                                 if (future.isDone()) {
                                     // Il task è completato, esegui azioni post-completamento nel thread UI principale
                                     Toast.makeText(getActivity(), "File sincronizzati dal server.", Toast.LENGTH_SHORT).show();
-                                    getView().findViewById(R.id.button_download).setEnabled(true);
-                                    getView().findViewById(R.id.button_second).setEnabled(true);
-                                    getView().findViewById(R.id.button_upload).setEnabled(true);
+                                    getView().findViewById(R.id.button_download).setEnabled(false);
+                                    getView().findViewById(R.id.button_second).setEnabled(false);
+                                    getView().findViewById(R.id.button_upload).setEnabled(false);
+                                    getView().findViewById(R.id.button_update_firmware).setEnabled(false);
                                     textView = getView().findViewById(R.id.textView2);
                                     // Chiamata al metodo per scrivere il testo nella TextView
 
@@ -236,9 +249,10 @@ public class SecondFragment extends Fragment {
                                 if (future_disp.isDone()) {
                                     // Il task è completato, esegui azioni post-completamento nel thread UI principale
                                     Toast.makeText(getActivity(), "File sincronizzati dal server.", Toast.LENGTH_SHORT).show();
-                                    getView().findViewById(R.id.button_download).setEnabled(true);
-                                    getView().findViewById(R.id.button_second).setEnabled(true);
-                                    getView().findViewById(R.id.button_upload).setEnabled(true);
+                                    getView().findViewById(R.id.button_download).setEnabled(false);
+                                    getView().findViewById(R.id.button_second).setEnabled(false);
+                                    getView().findViewById(R.id.button_upload).setEnabled(false);
+                                    getView().findViewById(R.id.button_update_firmware).setEnabled(false);
                                     textView = getView().findViewById(R.id.textView2);
                                     // Chiamata al metodo per scrivere il testo nella TextView
 
@@ -256,9 +270,6 @@ public class SecondFragment extends Fragment {
                     MS_Timer = 300;
                     break;
             }
-
-
-
 
             // Ripeti il runnable dopo l'intervallo
             handler.postDelayed(this, interval);
@@ -328,6 +339,7 @@ public class SecondFragment extends Fragment {
                 getView().findViewById(R.id.button_download).setEnabled(false);
                 getView().findViewById(R.id.button_second).setEnabled(false);
                 getView().findViewById(R.id.button_upload).setEnabled(false);
+                getView().findViewById(R.id.button_update_firmware).setEnabled(false);
                 textView = getView().findViewById(R.id.textView2);
                 textView.setText("Download in corso...");
 
@@ -343,9 +355,43 @@ public class SecondFragment extends Fragment {
                 getView().findViewById(R.id.button_download).setEnabled(false);
                 getView().findViewById(R.id.button_second).setEnabled(false);
                 getView().findViewById(R.id.button_upload).setEnabled(false);
+                getView().findViewById(R.id.button_update_firmware).setEnabled(false);
                 textView = getView().findViewById(R.id.textView2);
                 textView.setText("UpLoad in corso...");
 
+
+            }
+        });
+
+        binding.buttonUpdateFirmware.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                MS_Timer=0;
+                System.setOut(printStream);
+                getView().findViewById(R.id.button_download).setEnabled(false);
+                getView().findViewById(R.id.button_second).setEnabled(false);
+                getView().findViewById(R.id.button_upload).setEnabled(false);
+                getView().findViewById(R.id.button_update_firmware).setEnabled(false);
+                textView = getView().findViewById(R.id.textView2);
+                textView.setText("UpLoad firmware in corso...");
+
+
+                //new Thread(new Runnable() {
+                //    @Override
+                //    public void run() {
+                //        String serverURL = "http://192.168.100.1/update";
+                //        File file  = new File(getActivity().getFilesDir(), "firmware.bin");
+                //        uploadFile(serverURL, file);
+                //    }
+                //}).start();
+
+                new Thread(() -> {
+                    // Esegui l'upload del file
+                    String uploadUrl = "http://192.168.100.1/update";
+                    File file  = new File(getActivity().getFilesDir(), "firmware.bin");
+                    uploadFile(uploadUrl, file);
+
+                }).start();
 
             }
         });
@@ -440,6 +486,74 @@ public boolean MyisInternetAvailable() {
 
         connectivityManager.requestNetwork(networkRequest, networkCallback);
     }
+
+    public static void uploadFile(String uploadUrl, File file) {
+        String boundary = "===" + System.currentTimeMillis() + "===";
+        String LINE_FEED = "\r\n";
+        String TWO_HYPHENS = "--";
+
+        HttpURLConnection connection = null;
+        DataOutputStream outputStream = null;
+        FileInputStream fileInputStream = null;
+
+        try {
+            // Apri una connessione al server
+            URL url = new URL(uploadUrl);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setUseCaches(false);
+            connection.setDoOutput(true);
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+            connection.setConnectTimeout(10000); // 10 secondi di timeout per la connessione
+            connection.setReadTimeout(15000);    // 15 secondi di timeout per la lettura
+
+
+            // Ottieni l'output stream della connessione
+            outputStream = new DataOutputStream(connection.getOutputStream());
+
+            // Inizia la parte del form data
+            outputStream.writeBytes(TWO_HYPHENS + boundary + LINE_FEED);
+            outputStream.writeBytes("Content-Disposition: form-data; name=\"update\"; filename=\"" + file.getName() + "\"" + LINE_FEED);
+            outputStream.writeBytes("Content-Type: " + HttpURLConnection.guessContentTypeFromName(file.getName()) + LINE_FEED);
+            outputStream.writeBytes("Content-Transfer-Encoding: binary" + LINE_FEED);
+            outputStream.writeBytes(LINE_FEED);
+
+            // Leggi il file e scrivilo nell'output stream
+            fileInputStream = new FileInputStream(file);
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = fileInputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+
+            }
+
+            // Chiudi la parte del form data
+            outputStream.writeBytes(LINE_FEED);
+            outputStream.writeBytes(TWO_HYPHENS + boundary + TWO_HYPHENS + LINE_FEED);
+
+            // Ottieni la risposta dal server
+            int responseCode = connection.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                System.out.println("File uploaded successfully!");
+            } else {
+                System.out.println("Error uploading file: " + responseCode);
+            }
+
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        } finally {
+            // Chiudi risorse
+            try {
+                if (outputStream != null) outputStream.close();
+                if (fileInputStream != null) fileInputStream.close();
+                if (connection != null) connection.disconnect();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+
 
     public void disconnectFromWifiNetwork() {
     ConnectivityManager connectivityManager = (ConnectivityManager) getActivity().getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
