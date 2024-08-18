@@ -68,7 +68,7 @@ import java.net.HttpURLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
+import org.apache.commons.net.ftp.FTPReply;
 
 
 
@@ -196,7 +196,7 @@ public class SecondFragment extends Fragment {
                     SecondFragment.SincronizzazioneTask sincronizzazioneTask = new SecondFragment.SincronizzazioneTask(executorService, new sincronizzaLibreriaServerInternet());
                     Future<Void> future = sincronizzazioneTask.sincronizza();
                     Timer timer = new Timer();
-                    timer.scheduleAtFixedRate(new TimerTask() {
+                    timer.schedule(new TimerTask() {
                         @Override
                         public void run() {
                             getActivity().runOnUiThread(() -> {
@@ -239,7 +239,7 @@ public class SecondFragment extends Fragment {
                     SecondFragment.SincronizzazioneTask_esp32 sincronizzazioneTask_disp = new SecondFragment.SincronizzazioneTask_esp32(executorService_disp, new SincronizzaLibreriaSuDispenser());
                     Future<Void> future_disp = sincronizzazioneTask_disp.sincronizza();
                     Timer timer_disp = new Timer();
-                    timer_disp.scheduleAtFixedRate(new TimerTask() {
+                    timer_disp.schedule(new TimerTask() {
                         @Override
                         public void run() {
                             getActivity().runOnUiThread(() -> {

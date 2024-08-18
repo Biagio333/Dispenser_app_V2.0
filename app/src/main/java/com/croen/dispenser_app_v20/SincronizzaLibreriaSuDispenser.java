@@ -34,7 +34,8 @@ public class SincronizzaLibreriaSuDispenser {
         ftpClient.addProtocolCommandListener(new PrintCommandListener(System.err, true));
 
         // Imposta la localizzazione
-        ftpClient.setControlKeepAliveTimeout(30);
+        //ftpClient.setControlKeepAliveTimeout(30);
+        ftpClient.setConnectTimeout(30000); // Imposta il timeout di connessione a 30 secondi
 
         FTPClientConfig config = new FTPClientConfig(FTPClientConfig.SYST_UNIX);
 
@@ -42,15 +43,21 @@ public class SincronizzaLibreriaSuDispenser {
         ftpClient.configure  (config);
 
         try {
+            // Aggiungi il PrintCommandListener per vedere i messaggi di testo
+            ftpClient.addProtocolCommandListener(new PrintCommandListener(System.out, true));
+
             // Imposta l'encoding di controllo su ISO-8859-1
-            ftpClient.setControlEncoding("ISO-8859-1");
-            ftpClient.setBufferSize(255);
+            ftpClient.setControlEncoding("UTF-8");
+            ftpClient.setBufferSize(1024);
             ftpClient.setConnectTimeout(10000); // Imposta il timeout di connessione
             ftpClient.connect(SERVER, PORT);
             ftpClient.login(USERNAME, PASSWORD);
-            ftpClient.setFileType(FTP.BINARY_FILE_TYPE); // Se si sta caricando un file binario, come ad esempio un'immagine
-            //ftpClient.enterLocalPassiveMode();
+
+
+
             //ftpClient.enterLocalActiveMode();
+            ftpClient.setFileType(FTP.BINARY_FILE_TYPE); // Se si sta caricando un file binario, come ad esempio un'immagine
+
 
             // Set the maximum number of connections to 1
 
