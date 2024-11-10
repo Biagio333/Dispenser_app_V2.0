@@ -31,7 +31,7 @@ public class SincronizzaLibreriaSuDispenser {
         FTPClient ftpClient = new FTPClient();
 
         // Aggiungi il PrintCommandListener al client FTP, inviando l'output a System.err
-        ftpClient.addProtocolCommandListener(new PrintCommandListener(System.err, true));
+        //ftpClient.addProtocolCommandListener(new PrintCommandListener(System.err, true));
 
         // Imposta la localizzazione
         //ftpClient.setControlKeepAliveTimeout(30);
@@ -44,7 +44,7 @@ public class SincronizzaLibreriaSuDispenser {
 
         try {
             // Aggiungi il PrintCommandListener per vedere i messaggi di testo
-            ftpClient.addProtocolCommandListener(new PrintCommandListener(System.out, true));
+            // ftpClient.addProtocolCommandListener(new PrintCommandListener(System.out, true));
 
             // Imposta l'encoding di controllo su ISO-8859-1
             ftpClient.setControlEncoding("UTF-8");
