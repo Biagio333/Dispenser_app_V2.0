@@ -2,7 +2,7 @@
     <string name="app_name">Dispenser_app_V2.0</string>
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
-    <string name="first_fragment_label">Site</string>
+    <string name="first_fragment_label">Site V1.1</string>
     <string name="second_fragment_label">Download/Upload</string>
     <string name="next">Download/Upload</string>
     <string name="previous">To Site</string>

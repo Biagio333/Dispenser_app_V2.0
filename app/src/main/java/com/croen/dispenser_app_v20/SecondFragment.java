@@ -5,12 +5,13 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageInfo;
-import android.net.ConnectivityManager;
-import android.net.Network;
-import android.net.NetworkCapabilities;
+//import android.net.ConnectivityManager;
+//import android.net.Network;
+//import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
-import android.net.wifi.ScanResult;
-import android.net.wifi.WifiManager;
+//import android.net.wifi.ScanResult;
+//import android.net.wifi.WifiManager;
+
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -51,10 +52,10 @@ import it.sauronsoftware.ftp4j.FTPClient;
 import android.net.NetworkRequest;
 import android.net.wifi.WifiNetworkSpecifier;
 
-import android.provider.Settings;
+//import android.provider.Settings;
 import android.content.Intent;
 import android.net.Uri;
-
+import java.net.InetAddress;
 
 import java.io.IOException;
 
@@ -64,6 +65,8 @@ import android.net.wifi.WifiInfo;
 import java.net.URL;
 import java.net.HttpURLConnection;
 
+import android.content.Context;
+import android.os.PowerManager;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -99,8 +102,13 @@ public class SecondFragment extends Fragment {
     private boolean DispenserAvailable = false;
     private int counter_rescan_internet = 0;
 
-    public WifiManager wifiManager;
-
+    boolean state_ip = false;
+    boolean Ping_copleted = false;
+    int ping_Number =0;
+    private String IP_Dispenser = "192.168.100.1";
+    private String IP_Internet  = "75.119.141.254";
+    //public WifiManager wifiManager;
+    private PowerManager.WakeLock wakeLock;
 
 
     Runnable runnable = new Runnable() {
@@ -111,18 +119,70 @@ public class SecondFragment extends Fragment {
             switch (MS_Timer) {
                 case 0:
 
-                    counter_rescan_internet++;
-                    if (counter_rescan_internet > 20) {
-                        counter_rescan_internet = 0;
-                        MS_Timer = 1;
+                    if (ping_Number == 0){
+                        ping_Number =1;
+                        // Esegui isReachable in un thread separato
+                        new Thread(() -> {
+                            MS_Timer=2;
+                            state_ip = isReachable(IP_Dispenser);
+                            // Usa Handler per aggiornare il thread principale
+                            new Handler(Looper.getMainLooper()).post(() -> {
+                                Log.d("cip", String.valueOf(state_ip));
+                                Ping_copleted=true;
+                                try {
+                                    if (state_ip == true) {
+                                        DispenserAvailable = true;
+
+                                        getView().findViewById(R.id.button_upload).setEnabled(true);
+                                        getView().findViewById(R.id.button_update_firmware).setEnabled(true);
+                                    } else {
+                                        DispenserAvailable = false;
+                                        getView().findViewById(R.id.button_upload).setEnabled(false);
+                                        getView().findViewById(R.id.button_update_firmware).setEnabled(false);
+
+
+                                    }
+                                }
+                                catch (NullPointerException ex){
+
+                                }
+                            });
+                        }).start();
+                    }
+                    else{
+                        ping_Number =0;
+                        new Thread(() -> {
+                            MS_Timer=2;
+                            state_ip = isReachable(IP_Internet);
+                            // Usa Handler per aggiornare il thread principale
+                            new Handler(Looper.getMainLooper()).post(() -> {
+                                Log.d("cip", String.valueOf(state_ip));
+                                Ping_copleted=true;
+                                try{
+                                    if (state_ip==true){
+                                        getView().findViewById(R.id.button_download).setEnabled(true);
+
+                                    }
+                                    else{
+                                        getView().findViewById(R.id.button_download).setEnabled(false);
+                                    }
+                                }
+                                catch (NullPointerException ex){
+
+                                }
+
+                            });
+                        }).start();
                     }
                     break;
+
                 case 1:
                     Request_select_lan_hotspot_dispenser = false;
-                    InternetAvailable=MyisInternetAvailable();
+                   // InternetAvailable=MyisInternetAvailable();
 
 
-                    if (wifiManager != null) {
+
+ /*                   if (wifiManager != null) {
                         wifiManager.startScan();
 
                         List<ScanResult> scanResults = wifiManager.getScanResults();
@@ -148,25 +208,15 @@ public class SecondFragment extends Fragment {
                             getView().findViewById(R.id.button_upload).setEnabled(false);
                             getView().findViewById(R.id.button_update_firmware).setEnabled(false);
                         }
-                    }
+                    }*/
 
                     break;
-                case 2:
-                    counter_rescan_internet++;
-                    if (counter_rescan_internet>5)
-                    {
-                        counter_rescan_internet=0;
-                        MS_Timer=1;
-                    }
-                    List<ScanResult> scanResults = wifiManager.getScanResults();
-                    // Controlla la connessione Internet
-                    Button BuDownload = getView().findViewById(R.id.button_download); // Sostituisci con l'ID reale del tuo pulsante
-                    if (InternetAvailable) {
-                        BuDownload.setEnabled(true);
-                    } else {
-                        BuDownload.setEnabled(false);
-                    }
 
+                case 2:
+                    if ( Ping_copleted == true){
+                        Ping_copleted=false;
+                        MS_Timer=0;
+                    }
 
                     break;
 
@@ -178,13 +228,14 @@ public class SecondFragment extends Fragment {
                 case 10:
 
 
-                    if (wifiManager != null) {
+           /*         if (wifiManager != null) {
                         WifiInfo wifiInfo = wifiManager.getConnectionInfo();
                         if (wifiInfo != null) {
                             disconnectFromWifiNetwork();
                             MS_Timer = 12;
                         }
-                    }
+                    }*/
+                    MS_Timer = 12;
                     break;
 
                 case 12:
@@ -288,6 +339,8 @@ public class SecondFragment extends Fragment {
         // Inizializza il percorso della cartella
         localDirectory = new File(getActivity().getFilesDir(), "SD");
 
+
+
         // Crea la cartella se non esiste
         if (!localDirectory.exists()) {
             boolean success = localDirectory.mkdirs();
@@ -303,7 +356,7 @@ public class SecondFragment extends Fragment {
 
 
         // Inizia il timer
-        MS_Timer = 1;
+        MS_Timer = 0;
         handler.postDelayed(runnable, interval);
         return binding.getRoot();
     }
@@ -312,13 +365,16 @@ public class SecondFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.System.canWrite(getContext())) {
-                Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:" + getContext().getPackageName()));
-                startActivityForResult(intent, 200);
-            }
+        //    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.System.canWrite(getContext())) {
+        //        Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:" + getContext().getPackageName()));
+        //        startActivityForResult(intent, 200);
+        //    }
 
-        wifiManager = (WifiManager) getActivity().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-
+       /* wifiManager = (WifiManager) getActivity().getApplicationContext().getSystemService(Context.WIFI_SERVICE);*/
+        PowerManager powerManager = (PowerManager) requireActivity().getSystemService(Context.POWER_SERVICE);
+        wakeLock = powerManager.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK |
+                PowerManager.ACQUIRE_CAUSES_WAKEUP, "MyApp::MyWakelockTag");
+        wakeLock.acquire(); // Mantiene il dispositivo sveglio
 
 
 
@@ -366,7 +422,7 @@ public class SecondFragment extends Fragment {
         binding.buttonUpdateFirmware.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                MS_Timer=0;
+                MS_Timer=300;
                 System.setOut(printStream);
                 getView().findViewById(R.id.button_download).setEnabled(false);
                 getView().findViewById(R.id.button_second).setEnabled(false);
@@ -390,6 +446,12 @@ public class SecondFragment extends Fragment {
                     String uploadUrl = "http://192.168.100.1/update";
                     File file  = new File(getActivity().getFilesDir(), "firmware.bin");
                     uploadFile(uploadUrl, file);
+                    // Usa Handler per aggiornare il thread principale
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        Log.d("cip", "Fine tread update firmware");
+                        textView.setText("UpLoad firmware Completed");
+                        MS_Timer=0;
+                    });
 
                 }).start();
 
@@ -402,6 +464,9 @@ public class SecondFragment extends Fragment {
         super.onDestroyView();
         binding = null;
         MS_Timer=0;
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release(); // Rilascia il WakeLock quando il fragment viene distrutto
+        }
     }
 
 
@@ -452,16 +517,16 @@ public class SecondFragment extends Fragment {
     }
 
 
-public boolean MyisInternetAvailable() {
+/*public boolean MyisInternetAvailable() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
         if (connectivityManager != null) {
             NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
             return activeNetworkInfo != null && activeNetworkInfo.isConnected();
         }
         return false;
-    }
+    }*/
 
-    @RequiresApi(api = Build.VERSION_CODES.Q)
+ /*   @RequiresApi(api = Build.VERSION_CODES.Q)
     public void connectToWifiNetwork(String ssid, String password) {
         WifiNetworkSpecifier wifiNetworkSpecifier = new WifiNetworkSpecifier.Builder()
                 .setSsid(ssid)
@@ -485,7 +550,7 @@ public boolean MyisInternetAvailable() {
         };
 
         connectivityManager.requestNetwork(networkRequest, networkCallback);
-    }
+    }*/
 
     public static void uploadFile(String uploadUrl, File file) {
         String boundary = "===" + System.currentTimeMillis() + "===";
@@ -553,12 +618,22 @@ public boolean MyisInternetAvailable() {
         }
     }
 
+    public boolean isReachable(String ipAddress) {
+        try {
+            InetAddress inetAddress = InetAddress.getByName(ipAddress);
+            boolean ris =inetAddress.isReachable(1000); // timeout in millisecondi
+            return ris;
+        } catch (IOException e) {
+            int a=0;
+            e.printStackTrace();
+            return false;
+        }
+    }
 
-
-    public void disconnectFromWifiNetwork() {
+ /*   public void disconnectFromWifiNetwork() {
     ConnectivityManager connectivityManager = (ConnectivityManager) getActivity().getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
     if (connectivityManager != null) {
         connectivityManager.bindProcessToNetwork(null);
     }
-}
+}*/
 }
